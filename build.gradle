@@ -1,0 +1,42 @@
+plugins {
+    id 'com.github.johnrengelman.shadow' version '4.0.4'
+    id 'application'
+    id 'java'
+}
+
+repositories {
+    jcenter()
+}
+
+archivesBaseName = "Renegade-Tracker.jar"
+group 'renegade.planetside2'
+version '1.0.0'
+
+repositories {
+    mavenCentral()
+    maven { url = 'https://repo.spongepowered.org/maven' }
+    maven {
+        name = 'gradle-plugins'
+        url = 'https://plugins.gradle.org/m2'
+    }
+}
+
+dependencies {
+    shadow 'org.spongepowered:configurate-hocon:3.6.1'
+    shadow 'com.h2database:h2:1.4.196'
+    shadow ('net.dv8tion:JDA:4.2.0_214') {
+        exclude module: 'opus-java'
+    }
+}
+
+application {
+    mainClass = "${group}.RenegadeTracker"
+}
+
+shadowJar {
+    archiveFileName = archivesBaseName
+    configurations = [project.configurations.shadow]
+}
+
+build.dependsOn(shadowJar)
+compileJava.options.encoding = 'UTF-8'
