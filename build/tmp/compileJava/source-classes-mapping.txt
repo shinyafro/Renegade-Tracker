@@ -1,2 +1,27 @@
+renegade/planetside2/data/Name.java
+ renegade.planetside2.data.Name
+renegade/planetside2/Utility.java
+ renegade.planetside2.Utility
 renegade/planetside2/RenegadeTracker.java
  renegade.planetside2.RenegadeTracker
+renegade/planetside2/Pair.java
+ renegade.planetside2.Pair
+renegade/planetside2/Configuration.java
+ renegade.planetside2.Configuration
+ renegade.planetside2.Configuration$Discord
+ renegade.planetside2.Configuration$Planetside
+ renegade.planetside2.Configuration$Roles
+renegade/planetside2/handlers/DiscordEvents.java
+ renegade.planetside2.handlers.DiscordEvents
+renegade/planetside2/data/Member.java
+ renegade.planetside2.data.Member
+ renegade.planetside2.data.Member$ItemListing
+ renegade.planetside2.data.Member$UnlockedItem
+renegade/planetside2/data/Outfit.java
+ renegade.planetside2.data.Outfit
+ renegade.planetside2.data.Outfit$OutfitListing
+renegade/planetside2/data/Item.java
+ renegade.planetside2.data.Item
+ renegade.planetside2.data.Item$Item_Listing
+renegade/planetside2/data/PS2API.java
+ renegade.planetside2.data.PS2API

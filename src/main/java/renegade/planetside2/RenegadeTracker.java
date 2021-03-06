@@ -11,17 +11,15 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
+import renegade.planetside2.data.Item;
 import renegade.planetside2.data.Member;
-import renegade.planetside2.data.PS2API;
+import renegade.planetside2.data.Outfit;
 import renegade.planetside2.handlers.DiscordEvents;
 
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Map;
-import java.util.TimerTask;
+import java.util.*;
 
 public enum RenegadeTracker {
     INSTANCE;
@@ -35,6 +33,7 @@ public enum RenegadeTracker {
     private ConfigurationLoader<CommentedConfigurationNode> loader;
     private CommentedConfigurationNode node;
     private Configuration configuration;
+    private List<Long> bananaIds;
 
      RenegadeTracker(){
          Collection<GatewayIntent> intents = Arrays.asList(
@@ -46,10 +45,11 @@ public enum RenegadeTracker {
                 .setDefaultOptions(ConfigurationOptions.defaults().setShouldCopyDefaults(true))
                 .build();
         loadConfig();
+        updateBananaIds();
         while (true) {
             try {
                 if (jda == null) this.jda = getJda(intents);
-                figureShitOut();
+                calculateRanks();
                 Utility.sleep(HOUR);
             } catch (InterruptedException | LoginException e) {
                 e.printStackTrace();
@@ -60,19 +60,20 @@ public enum RenegadeTracker {
         }
     }
 
-    private JDA getJda(Collection<GatewayIntent> intents) throws InterruptedException, LoginException {
-        loadConfig();
-        JDA jda = JDABuilder.createDefault(configuration.getJdaToken(), intents)
-                .setEventManager(new AnnotatedEventManager())
-                .setMemberCachePolicy(MemberCachePolicy.ALL)
-                .build();
-        jda.awaitStatus(JDA.Status.CONNECTED, JDA.Status.FAILED_TO_LOGIN);
-        jda.addEventListener(new DiscordEvents());
-        return jda;
+    public void updateBananaIds(){
+        bananaIds = configuration.getBananaIds();
     }
 
-    public void figureShitOut(){
-        Map<String, Member> map = PS2API.getMembers();
+    public void calculateRanks(){
+        List<Member> members = Outfit.getR18().getMembers();
+        for (Member member : members){
+            //todo check for discord role instead as it is more reliable.
+            //if (member.belowRank(configuration.getInGameRenegade())){
+                HashSet<Long> unlocks = member.getItems();
+                boolean banana = bananaIds.stream().anyMatch(unlocks::contains);
+                if (banana) System.out.println(member.getActualName() + " is a banana!");
+            //}
+        }
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -100,5 +101,16 @@ public enum RenegadeTracker {
 
     public Configuration getConfig(){
         return configuration;
+    }
+
+    private JDA getJda(Collection<GatewayIntent> intents) throws InterruptedException, LoginException {
+        loadConfig();
+        JDA jda = JDABuilder.createDefault(configuration.getJdaToken(), intents)
+                .setEventManager(new AnnotatedEventManager())
+                .setMemberCachePolicy(MemberCachePolicy.ALL)
+                .build();
+        jda.awaitStatus(JDA.Status.CONNECTED, JDA.Status.FAILED_TO_LOGIN);
+        jda.addEventListener(new DiscordEvents());
+        return jda;
     }
 }
