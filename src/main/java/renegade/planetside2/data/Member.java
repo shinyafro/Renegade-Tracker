@@ -1,6 +1,6 @@
 package renegade.planetside2.data;
 
-import renegade.planetside2.Utility;
+import renegade.planetside2.util.Utility;
 
 import java.util.HashSet;
 import java.util.List;
@@ -30,6 +30,10 @@ public class Member {
 
     public String getActualName(){
         return name.first;
+    }
+
+    public long getCharacter_id(){
+        return character_id;
     }
 
     public static class UnlockedItem {

@@ -1,4 +1,4 @@
-package renegade.planetside2;
+package renegade.planetside2.util;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;

@@ -1,4 +1,4 @@
-package renegade.planetside2;
+package renegade.planetside2.util;
 
 public class Pair<T,S> {
     private final T t;

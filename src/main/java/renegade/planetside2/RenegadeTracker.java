@@ -11,10 +11,12 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
-import renegade.planetside2.data.Item;
 import renegade.planetside2.data.Member;
 import renegade.planetside2.data.Outfit;
 import renegade.planetside2.handlers.DiscordEvents;
+import renegade.planetside2.storage.Configuration;
+import renegade.planetside2.storage.Database;
+import renegade.planetside2.util.Utility;
 
 import javax.security.auth.login.LoginException;
 import java.io.File;
@@ -34,6 +36,7 @@ public enum RenegadeTracker {
     private CommentedConfigurationNode node;
     private Configuration configuration;
     private List<Long> bananaIds;
+    private Database database;
 
      RenegadeTracker(){
          Collection<GatewayIntent> intents = Arrays.asList(
@@ -46,6 +49,8 @@ public enum RenegadeTracker {
                 .build();
         loadConfig();
         updateBananaIds();
+        database = Database.INSTANCE;
+        database.createRecord(248056002274918400L, 5428018587890217249L);
         while (true) {
             try {
                 if (jda == null) this.jda = getJda(intents);
@@ -71,7 +76,11 @@ public enum RenegadeTracker {
             //if (member.belowRank(configuration.getInGameRenegade())){
                 HashSet<Long> unlocks = member.getItems();
                 boolean banana = bananaIds.stream().anyMatch(unlocks::contains);
-                if (banana) System.out.println(member.getActualName() + " is a banana!");
+                if (banana){
+                    long discordId = database.getDiscord(member.getCharacter_id()).orElse(-1L);
+                    if (discordId > 0) System.out.println("DiscordID::" + discordId);
+                    System.out.println(member.getActualName() + " is a renegade");
+                }
             //}
         }
     }

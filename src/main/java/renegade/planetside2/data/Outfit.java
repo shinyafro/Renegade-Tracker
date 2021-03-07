@@ -1,6 +1,6 @@
 package renegade.planetside2.data;
 
-import renegade.planetside2.Utility;
+import renegade.planetside2.util.Utility;
 
 import java.util.List;
 

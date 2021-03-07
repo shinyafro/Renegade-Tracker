@@ -1,4 +1,4 @@
-package renegade.planetside2;
+package renegade.planetside2.storage;
 
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.entities.Guild;
