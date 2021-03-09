@@ -8,9 +8,11 @@ import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
+import net.dv8tion.jda.api.EmbedBuilder;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 
+import java.awt.*;
 import java.io.IOException;
-import java.util.Optional;
 
 public class Utility {
     public static Gson gson = new GsonBuilder()
@@ -59,5 +61,13 @@ public class Utility {
         } finally {
             if (httpResponse != null) try{httpResponse.disconnect();}catch (IOException ignored){};
         }
+    }
+
+    public static MessageEmbed embed(String title, String contents){
+        return new EmbedBuilder()
+                .setTitle("R-18 Renegade Tracker")
+                .addField(title, contents, false)
+                .setColor(Color.YELLOW)
+                .build();
     }
 }

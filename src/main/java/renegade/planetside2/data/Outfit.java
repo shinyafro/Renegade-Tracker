@@ -5,7 +5,7 @@ import renegade.planetside2.util.Utility;
 import java.util.List;
 
 public class Outfit {
-    List<Member> members;
+    List<Player> members;
 
     public static Outfit getR18() {
         String query = PS2API.getOutfitQuery("Renegade%2018");
@@ -14,7 +14,7 @@ public class Outfit {
         return outfits.outfit_list.get(0);
     }
 
-    public List<Member> getMembers() {
+    public List<Player> getMembers() {
         return members;
     }
 

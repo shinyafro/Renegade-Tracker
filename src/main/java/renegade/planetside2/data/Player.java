@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Member {
+public class Player {
 
     long character_id;
     long member_since;
@@ -18,7 +18,14 @@ public class Member {
     public HashSet<Long> getItems() {
         String query = String.format("%s/characters_item/?character_id=%s", PS2API.API_BASE, character_id);
         ItemListing listing = Utility.getGsonFromUrl(query, ItemListing.class);
-        if (listing == null) return new HashSet<>();
+        if (listing == null || listing.characters_item_list == null) {
+            System.out.printf("Unable to retrieve unlocks for %s! Re-trying!", getActualName());
+            listing = Utility.getGsonFromUrl(query, ItemListing.class);
+            if (listing == null || listing.characters_item_list == null) {
+                System.out.printf("Unable to retrieve unlocks for %s! Skipping!", getActualName());
+                return new HashSet<>();
+            }
+        }
         return listing.characters_item_list.stream()
                 .map(UnlockedItem::getId)
                 .collect(Collectors.toCollection(HashSet::new));
@@ -30,6 +37,10 @@ public class Member {
 
     public String getActualName(){
         return name.first;
+    }
+
+    public String getLowerName(){
+        return name.first_lower;
     }
 
     public long getCharacter_id(){

@@ -11,11 +11,13 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
-import renegade.planetside2.data.Member;
+import renegade.planetside2.data.Player;
 import renegade.planetside2.data.Outfit;
 import renegade.planetside2.handlers.DiscordEvents;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
+import renegade.planetside2.tracker.UserManager;
+import renegade.planetside2.util.Pair;
 import renegade.planetside2.util.Utility;
 
 import javax.security.auth.login.LoginException;
@@ -24,6 +26,7 @@ import java.io.IOException;
 import java.util.*;
 
 public enum RenegadeTracker {
+    //https://discord.com/oauth2/authorize?client_id=817749037188775936&permissions=8&scope=bot
     INSTANCE;
 
     public static void main(String[] args) { }
@@ -31,17 +34,19 @@ public enum RenegadeTracker {
     private static final long MINUTE = SECOND * 60;
     private static final long HOUR = MINUTE * 60;
 
-    private JDA jda;
-    private ConfigurationLoader<CommentedConfigurationNode> loader;
+    private final ConfigurationLoader<CommentedConfigurationNode> loader;
+    private final Database database;
     private CommentedConfigurationNode node;
     private Configuration configuration;
     private List<Long> bananaIds;
-    private Database database;
+    private UserManager manager;
+    private JDA jda;
 
      RenegadeTracker(){
          Collection<GatewayIntent> intents = Arrays.asList(
                  GatewayIntent.GUILD_MEMBERS,
-                 GatewayIntent.GUILD_MESSAGES
+                 GatewayIntent.GUILD_MESSAGES,
+                 GatewayIntent.DIRECT_MESSAGES
          );
          loader =  HoconConfigurationLoader.builder()
                 .setPath(new File("config.hocon").toPath())
@@ -50,10 +55,10 @@ public enum RenegadeTracker {
         loadConfig();
         updateBananaIds();
         database = Database.INSTANCE;
-        database.createRecord(248056002274918400L, 5428018587890217249L);
+        manager = new UserManager(database, this);
         while (true) {
             try {
-                if (jda == null) this.jda = getJda(intents);
+                if (jda == null) this.jda = getJda(intents, manager);
                 calculateRanks();
                 Utility.sleep(HOUR);
             } catch (InterruptedException | LoginException e) {
@@ -65,13 +70,17 @@ public enum RenegadeTracker {
         }
     }
 
+    public JDA getJda(){
+         return jda;
+    }
+
     public void updateBananaIds(){
         bananaIds = configuration.getBananaIds();
     }
 
     public void calculateRanks(){
-        List<Member> members = Outfit.getR18().getMembers();
-        for (Member member : members){
+        List<Player> members = Outfit.getR18().getMembers();
+        for (Player member : members){
             //todo check for discord role instead as it is more reliable.
             //if (member.belowRank(configuration.getInGameRenegade())){
                 HashSet<Long> unlocks = member.getItems();
@@ -112,14 +121,14 @@ public enum RenegadeTracker {
         return configuration;
     }
 
-    private JDA getJda(Collection<GatewayIntent> intents) throws InterruptedException, LoginException {
+    private JDA getJda(Collection<GatewayIntent> intents, UserManager manager) throws InterruptedException, LoginException {
         loadConfig();
         JDA jda = JDABuilder.createDefault(configuration.getJdaToken(), intents)
                 .setEventManager(new AnnotatedEventManager())
+                .addEventListeners(new DiscordEvents(manager))
                 .setMemberCachePolicy(MemberCachePolicy.ALL)
                 .build();
         jda.awaitStatus(JDA.Status.CONNECTED, JDA.Status.FAILED_TO_LOGIN);
-        jda.addEventListener(new DiscordEvents());
         return jda;
     }
 }

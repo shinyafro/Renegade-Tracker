@@ -3,6 +3,8 @@ package renegade.planetside2.storage;
 import renegade.planetside2.util.Utility;
 
 import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 @SuppressWarnings("SqlResolve")
@@ -117,6 +119,36 @@ public enum Database {
         } catch (SQLException exception) {
             exception.printStackTrace();
             return Optional.empty();
+        }
+    }
+
+    public List<VerifiedData> getEntries(){
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement("SELECT * FROM `Verification`")) {
+
+            try (ResultSet rs = ps.executeQuery()) {
+                List<VerifiedData> entries = new ArrayList<>();
+                while (rs.next()){
+                    long player = rs.getLong("PlanetsideId");
+                    long discord = rs.getLong("DiscordId");
+                    entries.add(new VerifiedData(player, discord));
+                }
+                return entries;
+            }
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+            return new ArrayList<>();
+        }
+
+    }
+
+    public static class VerifiedData{
+        public final long ps2;
+        public final long discord;
+        public VerifiedData(long ps2, long discord){
+            this.ps2 = ps2;
+            this.discord = discord;
         }
     }
 
