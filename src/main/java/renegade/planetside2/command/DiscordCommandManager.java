@@ -52,7 +52,7 @@ public class DiscordCommandManager extends DiscordCommandTree {
                 .build();
 
         register(info, "info");
-        register(unlink, "users");
+        register(users, "users");
         register(checkCamo, "check-camo");
         register(unlink, "unlink");
         register(checkUser, "check-user");

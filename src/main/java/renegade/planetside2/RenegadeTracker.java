@@ -123,8 +123,9 @@ public enum RenegadeTracker {
                     .sendMessage(builder.build())
                     .queue();
         }
+        if (!configuration.shouldStripLeaving() || members.isEmpty() || members.size() < 100) return;
         database.getEntries().stream()
-                .map(Database.VerifiedData::getDiscord)
+                .map(Database.VerifiedData::getPs2)
                 .filter(user-> !outfitMembers.contains(user))
                 .forEach(manager::removeLeavingMember);
     }

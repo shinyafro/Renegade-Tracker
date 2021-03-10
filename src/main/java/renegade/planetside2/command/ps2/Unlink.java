@@ -17,7 +17,9 @@ public class Unlink implements DiscordCommandExecutor {
     public void execute(TextChannel source, Member author, String command, List<String> args) throws DiscordCommandException {
         Database database = RenegadeTracker.INSTANCE.getDatabase();
         boolean discord = args.get(0).equalsIgnoreCase("d") || args.get(0).equalsIgnoreCase("discord");
-        if (discord) {
+        if (args.size() < 2){
+            source.sendMessage(Utility.embed("Error", "Incorrect usage.")).queue();
+        } else if (discord) {
             long id = Utility.parseUserId(args).orElseThrow(() -> new DiscordCommandException("Please specify a discord user!"));
             Optional<Database.VerifiedData> entry = database.getWithDiscordId(id);
             database.deleteRecordDiscord(id);

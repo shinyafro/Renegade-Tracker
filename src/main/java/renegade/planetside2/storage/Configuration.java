@@ -116,6 +116,13 @@ public class Configuration {
         return discord.sendJoinMessage;
     }
 
+    public boolean shouldAssignRoles(){
+         return discord.assignRoles;
+    }
+    public boolean shouldStripLeaving(){
+        return discord.stripLeaving;
+    }
+
     public String getCommandPrefix() {
         return discord.commandPrefix;
     }
@@ -224,5 +231,11 @@ public class Configuration {
 
         @Setting(value = "Manage-Outfit-Wars", comment = "Should the bot manage the outfit-wars role? (Assign/Remove based on in-game data)")
         private boolean assignWars = true;
+
+        @Setting(value = "Assign-Roles", comment = "Should the bot try to assign roles?")
+        private boolean assignRoles = true;
+
+        @Setting(value = "Remove-Leaving-Roles", comment = "Remove roles from leaving members.")
+        private boolean stripLeaving = true;
     }
 }

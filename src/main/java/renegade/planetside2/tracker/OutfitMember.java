@@ -79,31 +79,36 @@ public class OutfitMember extends WrappedMember {
                         !player.getRank().equals(outfitWars) &&
                         !player.getRank().equals(srLead) &&
                         !player.getRank().equals(jrLead);
+            case RENEGADE: return false;
             default: return true;
         }
     }
 
     public void configureRanks() {
-        Configuration configuration = RenegadeTracker.INSTANCE.getConfig();
-        boolean shouldAssign = Arrays.stream(Rank.values())
-                .map(configuration::getRank)
-                .anyMatch(s->s.equals(getPlayer().getRank()));
-        if (!shouldAssign) return;
-        List<Rank> possibleRanks = Arrays.stream(Rank.values())
-                .filter(configuration::shouldAssign)
-                .filter(r->r.equals(Rank.RENEGADE))
-                .filter(this::shouldManage)
-                .collect(Collectors.toList());
-        List<Role> toRemove = new ArrayList<>();
-        List<Role> toAdd = new ArrayList<>();
-        possibleRanks.forEach(rank->{
-            if (hasRank(rank)){
-                toAdd.add(configuration.getRole(rank));
-            } else {
-                toRemove.add(configuration.getRole(rank));
-            }
-        });
-        getGuild().modifyMemberRoles(this, toAdd, toRemove)
-                .queue(s->{}, ex->{});
+        try {
+            Configuration configuration = RenegadeTracker.INSTANCE.getConfig();
+            boolean shouldAssign = Arrays.stream(Rank.values())
+                    .map(configuration::getRank)
+                    .anyMatch(s -> s.equals(getPlayer().getRank()));
+            if (!shouldAssign) return;
+            List<Rank> possibleRanks = Arrays.stream(Rank.values())
+                    .filter(configuration::shouldAssign)
+                    .filter(this::shouldManage)
+                    .collect(Collectors.toList());
+            List<Role> toRemove = new ArrayList<>();
+            List<Role> toAdd = new ArrayList<>();
+            possibleRanks.forEach(rank -> {
+                if (hasRank(rank)) {
+                    toAdd.add(configuration.getRole(rank));
+                } else {
+                    toRemove.add(configuration.getRole(rank));
+                }
+            });
+            if (!configuration.shouldAssignRoles()) return;
+            getGuild().modifyMemberRoles(member, toAdd, toRemove)
+                    .queue(s -> {}, ex -> {});
+        } catch (Exception e){
+            e.printStackTrace();
+        }
     }
 }
