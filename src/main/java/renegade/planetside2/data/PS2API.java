@@ -17,4 +17,8 @@ public class PS2API {
         name = name.toLowerCase(Locale.ENGLISH);
         return String.format("%s/character/?name.first_lower=%s", API_BASE, name);
     }
+
+    public static String getNameQuery(long id){
+        return String.format("%s/character/?character_id=%d", API_BASE, id);
+    }
 }

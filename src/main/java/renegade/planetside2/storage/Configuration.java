@@ -10,10 +10,14 @@ import renegade.planetside2.RenegadeTracker;
 import renegade.planetside2.data.PS2API;
 import renegade.planetside2.tracker.Rank;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
-import static renegade.planetside2.util.Utility.*;
+import static renegade.planetside2.util.Utility.HOUR;
+import static renegade.planetside2.util.Utility.MINUTE;
 
 @ConfigSerializable @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Configuration {

@@ -1,12 +1,15 @@
 package renegade.planetside2.tracker;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.entities.Guild;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.RestAction;
 import renegade.planetside2.RenegadeTracker;
-import renegade.planetside2.data.OutfitPlayer;
 import renegade.planetside2.data.Outfit;
+import renegade.planetside2.data.OutfitPlayer;
 import renegade.planetside2.exception.*;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
@@ -16,7 +19,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-import static renegade.planetside2.util.Utility.*;
+import static renegade.planetside2.util.Utility.embed;
 
 public class UserManager {
     private final Database database;
@@ -87,7 +90,7 @@ public class UserManager {
     }
 
     public OutfitMember getMember(Member member) throws UserNotLinkedException {
-        OutfitPlayer p = database.getPlanetside(member.getIdLong())
+        OutfitPlayer p = database.getWithDiscordId(member.getIdLong())
                 .map(getLongMemberMap()::get)
                 .orElseThrow(UserNotLinkedException::new);
         return new OutfitMember(member, p);
@@ -95,7 +98,7 @@ public class UserManager {
 
     public RestAction<OutfitMember> getMember(long discordId) throws UserNotLinkedException {
         Guild guild = main.getConfig().getGuild(main.getJda());
-        OutfitPlayer p = database.getPlanetside(discordId)
+        OutfitPlayer p = database.getWithDiscordId(discordId)
                 .map(getLongMemberMap()::get)
                 .orElseThrow(UserNotLinkedException::new);
         return guild.retrieveMemberById(discordId)
@@ -133,13 +136,13 @@ public class UserManager {
     }
 
     private void linkAccount(User user, String name) throws LinkException {
-        if (database.getPlanetside(user.getIdLong()).isPresent()){
+        if (database.getWithDiscordId(user.getIdLong()).isPresent()){
             throw new AlreadyLinkedException();
         }
         HashMap<String, OutfitPlayer> outfitMembers = getNameMemberMap();
         OutfitPlayer member = outfitMembers.get(name);
         if (member == null) throw new UsernameNotInOutfitException();
-        else if (database.getDiscord(member.getCharacter_id()).isPresent()){
+        else if (database.getWithPlanetsideId(member.getCharacter_id()).isPresent()){
             throw new UsernameTakenException();
         }
         try {

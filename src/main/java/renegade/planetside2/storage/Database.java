@@ -3,7 +3,10 @@ package renegade.planetside2.storage;
 import renegade.planetside2.util.Utility;
 
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("SqlResolve")
@@ -30,7 +33,7 @@ public enum Database {
             String sql = "CREATE TABLE IF NOT EXISTS `Verification` (" +
                     " `DiscordId` BIGINT NOT NULL, " +
                     " `PlanetsideId` BIGINT NOT NULL, " +
-                    " `verified` TIMESTAMP NOT NULL DEFAULT current_timestamp()," +
+                    " `Verified` TIMESTAMP NOT NULL DEFAULT current_timestamp()," +
                     " PRIMARY KEY (`DiscordId`))";
             stmt.executeUpdate(sql);
             System.out.println("Created table in given database...");
@@ -88,7 +91,7 @@ public enum Database {
         }
     }
 
-    public Optional<Long> getDiscord(long planetsideId) {
+    public Optional<VerifiedData> getWithPlanetsideId(long planetsideId) {
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("SELECT * FROM `Verification` WHERE PlanetsideId = ?")) {
 
@@ -96,7 +99,11 @@ public enum Database {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
-                else return Optional.of(rs.getLong("DiscordId"));
+                long player = rs.getLong("PlanetsideId");
+                long discord = rs.getLong("DiscordId");
+                Timestamp verified = rs.getTimestamp("Verified");
+                VerifiedData data = new VerifiedData(player, discord, verified);
+                return Optional.of(data);
             }
 
         } catch (SQLException exception) {
@@ -105,7 +112,7 @@ public enum Database {
         }
     }
 
-    public Optional<Long> getPlanetside(long discordID) {
+    public Optional<VerifiedData> getWithDiscordId(long discordID) {
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("SELECT * FROM `Verification` WHERE DiscordId = ?")) {
 
@@ -113,7 +120,11 @@ public enum Database {
 
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) return Optional.empty();
-                else return Optional.of(rs.getLong("PlanetsideId"));
+                long player = rs.getLong("PlanetsideId");
+                long discord = rs.getLong("DiscordId");
+                Timestamp verified = rs.getTimestamp("Verified");
+                VerifiedData data = new VerifiedData(player, discord, verified);
+                return Optional.of(data);
             }
 
         } catch (SQLException exception) {
@@ -131,7 +142,8 @@ public enum Database {
                 while (rs.next()){
                     long player = rs.getLong("PlanetsideId");
                     long discord = rs.getLong("DiscordId");
-                    entries.add(new VerifiedData(player, discord));
+                    Timestamp verified = rs.getTimestamp("Verified");
+                    entries.add(new VerifiedData(player, discord, verified));
                 }
                 return entries;
             }
@@ -151,9 +163,11 @@ public enum Database {
     public static class VerifiedData{
         public final long ps2;
         public final long discord;
-        public VerifiedData(long ps2, long discord){
+        public final Timestamp verified;
+        public VerifiedData(long ps2, long discord, Timestamp verified){
             this.ps2 = ps2;
             this.discord = discord;
+            this.verified = verified;
         }
 
         public long getPs2(){

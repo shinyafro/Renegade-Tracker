@@ -16,8 +16,8 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
-import renegade.planetside2.data.OutfitPlayer;
 import renegade.planetside2.data.Outfit;
+import renegade.planetside2.data.OutfitPlayer;
 import renegade.planetside2.handlers.DiscordEvents;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
@@ -30,7 +30,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 
-import static renegade.planetside2.util.Utility.*;
+import static renegade.planetside2.util.Utility.MINUTE;
 
 public enum RenegadeTracker {
     //https://discord.com/oauth2/authorize?client_id=817749037188775936&permissions=8&scope=bot

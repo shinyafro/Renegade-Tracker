@@ -4,9 +4,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import renegade.planetside2.RenegadeTracker;
-import renegade.planetside2.command.ps2.CheckCamo;
-import renegade.planetside2.command.ps2.CheckUser;
-import renegade.planetside2.command.ps2.Unlink;
+import renegade.planetside2.command.ps2.*;
 import renegade.planetside2.exception.DiscordCommandException;
 import renegade.planetside2.tracker.Rank;
 import renegade.planetside2.util.Utility;
@@ -40,6 +38,21 @@ public class DiscordCommandManager extends DiscordCommandTree {
                 .setCommandExecutor(new CheckUser())
                 .build();
 
+        DiscordCommand info = DiscordCommand.builder()
+                .setRequiredRanks(Rank.OFFICER)
+                .setDescription("Checks a verified users data.")
+                .setCommandUsage("<name/id/@tag>")
+                .setCommandExecutor(new Info())
+                .build();
+
+        DiscordCommand users = DiscordCommand.builder()
+                .setRequiredRanks(Rank.OFFICER)
+                .setDescription("Lists all verified users in the database.")
+                .setCommandExecutor(new Verified())
+                .build();
+
+        register(info, "info");
+        register(unlink, "users");
         register(checkCamo, "check-camo");
         register(unlink, "unlink");
         register(checkUser, "check-user");

@@ -1,7 +1,7 @@
 package renegade.planetside2.command;
 
-import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.TextChannel;
 import renegade.planetside2.exception.DiscordCommandException;
 
 import java.util.List;

@@ -2,7 +2,6 @@ package renegade.planetside2.data;
 
 import renegade.planetside2.RenegadeTracker;
 import renegade.planetside2.storage.Configuration;
-import renegade.planetside2.tracker.Rank;
 import renegade.planetside2.util.Utility;
 
 import java.util.HashSet;

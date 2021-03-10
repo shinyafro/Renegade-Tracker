@@ -19,7 +19,7 @@ public class Unlink implements DiscordCommandExecutor {
         boolean discord = args.get(0).equalsIgnoreCase("d") || args.get(0).equalsIgnoreCase("discord");
         if (discord) {
             long id = Utility.parseUserId(args).orElseThrow(() -> new DiscordCommandException("Please specify a discord user!"));
-            Optional<Long> entry = database.getPlanetside(id);
+            Optional<Database.VerifiedData> entry = database.getWithDiscordId(id);
             database.deleteRecordDiscord(id);
             if (entry.isPresent()) {
                 source.sendMessage(Utility.embed("Success", "Deleted the entry from the database."))
@@ -31,7 +31,7 @@ public class Unlink implements DiscordCommandExecutor {
         } else {
             long id = args.get(1).matches("\\d+")? Long.parseLong(args.get(1)) : fetchPlayerId(args.get(1));
             if (id == -1) throw new DiscordCommandException("Failed to retrieve user ID from name.");
-            Optional<Long> entry = database.getDiscord(id);
+            Optional<Database.VerifiedData> entry = database.getWithPlanetsideId(id);
             database.deleteRecordPlanetside(id);
             if (entry.isPresent()) {
                 source.sendMessage(Utility.embed("Success", "Deleted the entry from the database."))

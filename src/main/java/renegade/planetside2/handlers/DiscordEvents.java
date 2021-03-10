@@ -11,7 +11,7 @@ import renegade.planetside2.command.DiscordCommandManager;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.tracker.UserManager;
 
-import static renegade.planetside2.util.Utility.*;
+import static renegade.planetside2.util.Utility.embed;
 
 public class DiscordEvents {
     final UserManager manager;
