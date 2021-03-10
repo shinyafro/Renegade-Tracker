@@ -207,10 +207,10 @@ public class Configuration {
         private long guild = 508534801339252744L;
 
         @Setting(value = "Linking-Channel", comment = "The channel for people to input their username into")
-        private long linkChannel = 0L;
+        private long linkChannel = 819180331814486048L;
 
         @Setting(value = "Command-Channel", comment = "The channel for command input / output\nScheduled check output will appear here too.")
-        private long botChannel = 0L;
+        private long botChannel = 819180387422699571L;
 
         @Setting(value = "Join-Message", comment = "Send a message when someone joins the discord?")
         private boolean sendJoinMessage = true;

@@ -12,6 +12,7 @@ group 'renegade.planetside2'
 version '1.0.0'
 archivesBaseName = "Renegade-Tracker.jar"
 mainClassName = "${group}.RenegadeTracker"
+def directory = project.hasProperty("args")? project.file(project.getProperty("args")) : project.file(jar.destinationDir)
 
 repositories {
     mavenCentral()
@@ -39,12 +40,12 @@ application {
 shadowJar {
     archiveFileName = archivesBaseName
     configurations = [project.configurations.shadow]
-    destinationDir project.file('D:/Renegade-Tracker')
+    destinationDir = directory
 }
 
 jar {
     archiveFileName = archivesBaseName
-    destinationDir project.file('D:/Renegade-Tracker')
+    destinationDir = directory
 }
 
 build.dependsOn(shadowJar)

@@ -30,6 +30,7 @@ public enum Database {
             String sql = "CREATE TABLE IF NOT EXISTS `Verification` (" +
                     " `DiscordId` BIGINT NOT NULL, " +
                     " `PlanetsideId` BIGINT NOT NULL, " +
+                    " `verified` TIMESTAMP NOT NULL DEFAULT current_timestamp()," +
                     " PRIMARY KEY (`DiscordId`))";
             stmt.executeUpdate(sql);
             System.out.println("Created table in given database...");

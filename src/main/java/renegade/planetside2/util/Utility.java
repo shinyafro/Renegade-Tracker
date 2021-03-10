@@ -10,6 +10,7 @@ import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.OnlineStatus;
 import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.requests.RestAction;
 import renegade.planetside2.RenegadeTracker;
@@ -124,7 +125,6 @@ public class Utility {
 
     public static Optional<Long> parseUserId(List<String> args){
         JDA jda = RenegadeTracker.INSTANCE.getJda();
-        Guild guild = RenegadeTracker.INSTANCE.getConfig().getGuild(jda);
         return args.stream()
                 .filter(s->s.matches("<?@?!?\\d+>?"))
                 .map(s->s.replaceAll("<?@?!?(\\d+)>?", "$1"))
@@ -142,5 +142,14 @@ public class Utility {
                 .map(guild::retrieveMemberById)
                 .map(RestAction::submit)
                 .findFirst();
+    }
+
+    public static void setStatus(Activity.ActivityType type, String name, String url) {
+        JDA jda = RenegadeTracker.INSTANCE.getJda();
+        if (url != null) {
+            jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.of(type, name, url));
+        } else {
+            jda.getPresence().setPresence(OnlineStatus.ONLINE, Activity.of(type, name));
+        }
     }
 }
