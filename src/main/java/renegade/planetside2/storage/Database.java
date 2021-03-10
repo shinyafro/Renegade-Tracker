@@ -3,9 +3,8 @@ package renegade.planetside2.storage;
 import renegade.planetside2.util.Utility;
 
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("SqlResolve")
 public enum Database {
@@ -143,12 +142,25 @@ public enum Database {
 
     }
 
+    public Map<Long, Long> getPS2DiscordMap(){
+        return getEntries().stream()
+                .collect(Collectors.toMap(VerifiedData::getPs2, VerifiedData::getDiscord));
+    }
+
     public static class VerifiedData{
         public final long ps2;
         public final long discord;
         public VerifiedData(long ps2, long discord){
             this.ps2 = ps2;
             this.discord = discord;
+        }
+
+        public long getPs2(){
+            return ps2;
+        }
+
+        public long getDiscord(){
+            return discord;
         }
     }
 

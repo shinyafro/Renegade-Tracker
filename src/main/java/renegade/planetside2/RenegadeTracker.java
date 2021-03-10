@@ -1,8 +1,12 @@
 package renegade.planetside2;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.common.reflect.TypeToken;
+import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.MemberCachePolicy;
@@ -16,6 +20,8 @@ import renegade.planetside2.data.Outfit;
 import renegade.planetside2.handlers.DiscordEvents;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
+import renegade.planetside2.tracker.OutfitMember;
+import renegade.planetside2.tracker.Rank;
 import renegade.planetside2.tracker.UserManager;
 import renegade.planetside2.util.Pair;
 import renegade.planetside2.util.Utility;
@@ -29,7 +35,19 @@ public enum RenegadeTracker {
     //https://discord.com/oauth2/authorize?client_id=817749037188775936&permissions=8&scope=bot
     INSTANCE;
 
-    public static void main(String[] args) { }
+    public static void main(String[] args) {
+        while (true) {
+            try {
+                System.out.println("Starting scheduled rank check.");
+                INSTANCE.calculateRanks(true);
+                System.out.println("Scheduled rank check completed.");
+                Utility.sleep(HOUR);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
     private static final long SECOND = 1000;
     private static final long MINUTE = SECOND * 60;
     private static final long HOUR = MINUTE * 60;
@@ -56,16 +74,12 @@ public enum RenegadeTracker {
         updateBananaIds();
         database = Database.INSTANCE;
         manager = new UserManager(database, this);
-        while (true) {
+        while (jda == null) {
             try {
-                if (jda == null) this.jda = getJda(intents, manager);
-                calculateRanks();
-                Utility.sleep(HOUR);
+                this.jda = getJda(intents, manager);
             } catch (InterruptedException | LoginException e) {
                 e.printStackTrace();
                 Utility.sleep(MINUTE);
-            } catch (Exception e){
-                e.printStackTrace();
             }
         }
     }
@@ -78,19 +92,28 @@ public enum RenegadeTracker {
         bananaIds = configuration.getBananaIds();
     }
 
-    public void calculateRanks(){
+    public void calculateRanks(boolean updateRanks) {
+        Map<Long, Long> ps2Discord = database.getPS2DiscordMap();
         List<Player> members = Outfit.getR18().getMembers();
-        for (Player member : members){
-            //todo check for discord role instead as it is more reliable.
-            //if (member.belowRank(configuration.getInGameRenegade())){
-                HashSet<Long> unlocks = member.getItems();
-                boolean banana = bananaIds.stream().anyMatch(unlocks::contains);
-                if (banana){
-                    long discordId = database.getDiscord(member.getCharacter_id()).orElse(-1L);
-                    if (discordId > 0) System.out.println("DiscordID::" + discordId);
-                    System.out.println(member.getActualName() + " is a renegade");
-                }
-            //}
+        Multimap<String, String> renegadeMap = ArrayListMultimap.create();
+        for (Player player : members) {
+            long discord = ps2Discord.getOrDefault(player.getCharacter_id(), -1L);
+            OutfitMember member = manager.getMember(discord, player).orElse(null);
+            if ((player.checkForRenegade() || member != null && !member.isRenegade()) && player.hasAny(bananaIds)) {
+                if (member != null) member.assignRenegade();
+                else renegadeMap.put(player.getRank(), player.getActualName());
+            }
+            if (member != null && updateRanks) member.configureRanks(player);
+        }
+        String title = "The following players have the renegade camo,\nbut are not linked to a discord account";
+        TextChannel channel = configuration.getCommandChannel();
+        if (channel != null) {
+            EmbedBuilder builder = Utility.embed()
+                    .addField(title, "", false);
+            renegadeMap.asMap().forEach((rank, names)->builder.addField(rank, String.join("\n", names), false));
+            configuration.getCommandChannel()
+                    .sendMessage(builder.build())
+                    .queue();
         }
     }
 

@@ -1,16 +1,14 @@
 package renegade.planetside2.tracker;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.Role;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.RestAction;
 import renegade.planetside2.RenegadeTracker;
 import renegade.planetside2.data.Player;
 import renegade.planetside2.data.Outfit;
 import renegade.planetside2.exception.*;
+import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
 import renegade.planetside2.util.Pair;
 
@@ -34,12 +32,23 @@ public class UserManager {
     }
 
     @SubscribeEvent
-    public void linkAccount(User source, User target, String username){
+    public void linkAccount(User source, User target, String input) {
         try {
+            String username = input.toLowerCase(Locale.ENGLISH);
+            JDA jda = RenegadeTracker.INSTANCE.getJda();
+            Configuration cfg = RenegadeTracker.INSTANCE.getConfig();
             linkAccount(target, username);
             source.openPrivateChannel()
                     .flatMap(ch->ch.sendMessage(embed("Success","You have been successfully added to the database.")))
                     .queue();
+            TextChannel command = cfg.getCommandChannel();
+            String adminNotification = String.format("The user %s has been linked to %s.", target.getAsMention(), input);
+            command.sendMessage(embed("Verification", adminNotification)).queue();
+            Guild guild = cfg.getGuild(jda);
+            guild.retrieveMember(target)
+                    .submit()
+                    .thenApply(m->guild.modifyNickname(m, input))
+                    .thenCompose(RestAction::submit);
         } catch (AlreadyLinkedException e) {
             source.openPrivateChannel()
                     .flatMap(ch->ch.sendMessage(embed("Error", "We have detected your discord account is already in the database. \n" +
@@ -61,6 +70,20 @@ public class UserManager {
                     .flatMap(ch->ch.sendMessage(embed("Error","An error has occurred while trying to link your account. \n" +
                             "If you feel this is in error, please contact an administrator immediately.")))
                     .queue();
+        }
+    }
+
+    public Optional<OutfitMember> getMember(long discord, Player player) {
+        if (discord < 0) return Optional.empty();
+        try {
+            JDA jda = RenegadeTracker.INSTANCE.getJda();
+            Guild guild = RenegadeTracker.INSTANCE.getConfig().getGuild(jda);
+            Member member = guild.retrieveMemberById(discord).complete();
+            if (player == null || member == null) return Optional.empty();
+            else return Optional.of(new OutfitMember(member, player));
+        } catch (Exception e){
+            e.printStackTrace();
+            return Optional.empty();
         }
     }
 
@@ -99,7 +122,7 @@ public class UserManager {
                     try {
                         return new OutfitMember(p.getKey().get(), p.getValue());
                     } catch (Exception e) {
-                        System.out.printf("Failed to retrieve future for %s", p.getValue().getActualName());
+                        System.out.printf("Failed to retrieve future for %s\n", p.getValue().getActualName());
                         return null;
                     }
                 }).filter(Objects::nonNull)

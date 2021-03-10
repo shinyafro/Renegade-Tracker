@@ -9,8 +9,6 @@ import renegade.planetside2.RenegadeTracker;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.tracker.UserManager;
 
-import java.util.Locale;
-
 import static renegade.planetside2.util.Utility.*;
 
 public class DiscordEvents {
@@ -32,8 +30,7 @@ public class DiscordEvents {
     public void onPrivateMessage(PrivateMessageReceivedEvent event){
         if (event.getAuthor().isBot()) return;
         String username = event.getMessage()
-                .getContentRaw()
-                .toLowerCase(Locale.ENGLISH);
+                .getContentRaw();
         User user = event.getAuthor();
         manager.linkAccount(user, user, username);
     }
@@ -45,8 +42,7 @@ public class DiscordEvents {
         Configuration conf = RenegadeTracker.INSTANCE.getConfig();
         if (channel == conf.getLinkingChannelId()){
             String username = event.getMessage()
-                    .getContentRaw()
-                    .toLowerCase(Locale.ENGLISH);
+                    .getContentRaw();
             User user = event.getAuthor();
             manager.linkAccount(user, user, username);
         } else if (channel == conf.getCommandChannelId()) {

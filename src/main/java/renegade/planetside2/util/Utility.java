@@ -70,4 +70,10 @@ public class Utility {
                 .setColor(Color.YELLOW)
                 .build();
     }
+
+    public static EmbedBuilder embed(){
+        return new EmbedBuilder()
+                .setTitle("R-18 Renegade Tracker")
+                .setColor(Color.YELLOW);
+    }
 }

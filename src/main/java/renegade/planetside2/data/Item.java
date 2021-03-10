@@ -11,7 +11,7 @@ public class Item {
         String query = String.format("%s/item/?name.en=%s", PS2API.API_BASE, itemName);
         Item_Listing listing = Utility.getGsonFromUrl(query, Item_Listing.class);
         if (listing == null || listing.item_list.isEmpty()) {
-            System.out.printf("ERROR: \"%s\" was unable to be parsed into an ID. Is it spelled correctly?", itemName);
+            System.out.printf("ERROR: \"%s\" was unable to be parsed into an ID. Is it spelled correctly?\n", itemName);
             return null;
         }
         else return listing.item_list.get(0);
