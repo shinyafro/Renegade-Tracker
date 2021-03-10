@@ -13,6 +13,8 @@ import renegade.planetside2.tracker.Rank;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static renegade.planetside2.util.Utility.*;
+
 @ConfigSerializable @SuppressWarnings({"FieldCanBeLocal", "FieldMayBeFinal"})
 public class Configuration {
 
@@ -23,7 +25,9 @@ public class Configuration {
 
     @Setting("Outfit-Ranks")
     private InGameRanks inGameRanks = new InGameRanks();
-    @Setting("Discord-Roles")
+    @Setting(value = "Discord-Roles", comment = "Roles can be set to -1 in order to not be assigned or removed.\n" +
+            "Note that this also means they cannot be used for command-perms.\n" +
+            "The admin role in particular is used for administrative commands.")
     private DiscordRoles discordRoles = new DiscordRoles();
 
     public List<Long> getBananaIds(){
@@ -83,11 +87,33 @@ public class Configuration {
         }
     }
 
+    public boolean shouldAssign(Rank rank){
+        switch (rank) {
+            case OFFICER: return discord.assignAdmin;
+            case OUTFIT_WARS: return discord.assignWars;
+            default: return true;
+        }
+    }
+
     public Set<String> getCheckForRenegade() {
         if (planetside.checkForCamoHashSet == null){
             planetside.checkForCamoHashSet = new HashSet<>(planetside.checkForCamo);
         }
         return planetside.checkForCamoHashSet;
+    }
+
+    public long getScheduleInterval(){
+        if (planetside.interval < 0) return -1;
+        long val = (long) planetside.interval * HOUR;
+        return Math.max(val, MINUTE * 15);
+    }
+
+    public boolean sendJoinMessage() {
+        return discord.sendJoinMessage;
+    }
+
+    public String getCommandPrefix() {
+        return discord.commandPrefix;
     }
 
     @ConfigSerializable
@@ -106,6 +132,12 @@ public class Configuration {
                 "Join Discord"
         );
 
+        @Setting(value = "Scheduler-Interval", comment = "How long (In hours) the bot will check verified users ranks,\n" +
+                "and for renegade camo, etc. Default: 2.0 - Minimum of 15 minutes.\n" +
+                "any values below 0 will result in the tasks not being ran.\n" +
+                "NOTE: If it is disabled, you will need to restart the bot to re-enable it.")
+        private double interval = 2.0;
+
         private Set<String> checkForCamoHashSet;
     }
 
@@ -117,11 +149,11 @@ public class Configuration {
         @Setting("Senior-Leader-Rank")
         private String srLeader = "R18 Bastion Officer";
 
-        @Setting("Junior-Leader-Rank")
-        private String jrLeader = "R18 Jr Officer";
-
         @Setting("Outfit-Wars-Rank")
         private String outfitWars = "R18 Vanguards";
+
+        @Setting("Junior-Leader-Rank")
+        private String jrLeader = "R18 Jr Leader";
 
         @Setting("Router-Ops-Rank")
         private String routerOps = "R18 Router Builder";
@@ -144,11 +176,11 @@ public class Configuration {
         @Setting("Senior-Leader-Role")
         private long srLeader= 695922691307208746L;
 
-        @Setting("Junior-Leader-Role")
-        private long jrLeader = 714259997961486369L;
-
         @Setting("Outfit-Wars-Role")
         private long outfitWars = 817667884355420180L;
+
+        @Setting("Junior-Leader-Role")
+        private long jrLeader = 714259997961486369L;
 
         @Setting("Router-Ops-Role")
         private long routerOps = 695922691521249352L;
@@ -165,6 +197,8 @@ public class Configuration {
 
     @ConfigSerializable
     public static class Discord {
+        @Setting(value = "Command-Prefix", comment = "The prefix to use bot commands")
+        private String commandPrefix = "/";
 
         @Setting(value = "Discord-API-Token", comment = "The discord bot token.")
         private String jdaToken = "";
@@ -177,5 +211,14 @@ public class Configuration {
 
         @Setting(value = "Command-Channel", comment = "The channel for command input / output\nScheduled check output will appear here too.")
         private long botChannel = 0L;
+
+        @Setting(value = "Join-Message", comment = "Send a message when someone joins the discord?")
+        private boolean sendJoinMessage = true;
+
+        @Setting(value = "Manage-Admin", comment = "Should the bot manage the admin role? (Assign/Remove based on in-game data)")
+        private boolean assignAdmin = true;
+
+        @Setting(value = "Manage-Outfit-Wars", comment = "Should the bot manage the outfit-wars role? (Assign/Remove based on in-game data)")
+        private boolean assignWars = true;
     }
 }

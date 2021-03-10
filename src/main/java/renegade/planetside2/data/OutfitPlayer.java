@@ -9,7 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Player {
+public class OutfitPlayer {
 
     long character_id;
     long member_since;

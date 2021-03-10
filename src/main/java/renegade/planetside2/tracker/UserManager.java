@@ -5,7 +5,7 @@ import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.RestAction;
 import renegade.planetside2.RenegadeTracker;
-import renegade.planetside2.data.Player;
+import renegade.planetside2.data.OutfitPlayer;
 import renegade.planetside2.data.Outfit;
 import renegade.planetside2.exception.*;
 import renegade.planetside2.storage.Configuration;
@@ -15,15 +15,14 @@ import renegade.planetside2.util.Pair;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static renegade.planetside2.util.Utility.*;
 
 public class UserManager {
     private final Database database;
     private final RenegadeTracker main;
-    private HashMap<String, Player> nameMemberMap;
-    private HashMap<Long, Player> longMemberMap;
+    private HashMap<String, OutfitPlayer> nameMemberMap;
+    private HashMap<Long, OutfitPlayer> longMemberMap;
     private long lastUpdated = 0;
 
     public UserManager(Database database, RenegadeTracker main){
@@ -73,7 +72,7 @@ public class UserManager {
         }
     }
 
-    public Optional<OutfitMember> getMember(long discord, Player player) {
+    public Optional<OutfitMember> getMember(long discord, OutfitPlayer player) {
         if (discord < 0) return Optional.empty();
         try {
             JDA jda = RenegadeTracker.INSTANCE.getJda();
@@ -88,7 +87,7 @@ public class UserManager {
     }
 
     public OutfitMember getMember(Member member) throws UserNotLinkedException {
-        Player p = database.getPlanetside(member.getIdLong())
+        OutfitPlayer p = database.getPlanetside(member.getIdLong())
                 .map(getLongMemberMap()::get)
                 .orElseThrow(UserNotLinkedException::new);
         return new OutfitMember(member, p);
@@ -96,7 +95,7 @@ public class UserManager {
 
     public RestAction<OutfitMember> getMember(long discordId) throws UserNotLinkedException {
         Guild guild = main.getConfig().getGuild(main.getJda());
-        Player p = database.getPlanetside(discordId)
+        OutfitPlayer p = database.getPlanetside(discordId)
                 .map(getLongMemberMap()::get)
                 .orElseThrow(UserNotLinkedException::new);
         return guild.retrieveMemberById(discordId)
@@ -104,7 +103,7 @@ public class UserManager {
     }
 
     public Collection<OutfitMember> getLinkedMembers() {
-        List<Pair<CompletableFuture<Member>, Player>> memberFutures = database.getEntries().stream()
+        List<Pair<CompletableFuture<Member>, OutfitPlayer>> memberFutures = database.getEntries().stream()
                 .map(data -> {
                     JDA jda = main.getJda();
                     Guild guild = main.getConfig().getGuild(jda);
@@ -112,7 +111,7 @@ public class UserManager {
                             .submit()
                             .thenApply(guild::retrieveMember)
                             .thenCompose(RestAction::submit);
-                    Player player = longMemberMap.get(data.ps2);
+                    OutfitPlayer player = longMemberMap.get(data.ps2);
                     return new Pair<>(user, player);
                 }).collect(Collectors.toList());
 
@@ -129,7 +128,7 @@ public class UserManager {
                 .collect(Collectors.toList());
     }
 
-    public Collection<Player> getMembers(){
+    public Collection<OutfitPlayer> getMembers(){
         return longMemberMap.values();
     }
 
@@ -137,8 +136,8 @@ public class UserManager {
         if (database.getPlanetside(user.getIdLong()).isPresent()){
             throw new AlreadyLinkedException();
         }
-        HashMap<String, Player> outfitMembers = getNameMemberMap();
-        Player member = outfitMembers.get(name);
+        HashMap<String, OutfitPlayer> outfitMembers = getNameMemberMap();
+        OutfitPlayer member = outfitMembers.get(name);
         if (member == null) throw new UsernameNotInOutfitException();
         else if (database.getDiscord(member.getCharacter_id()).isPresent()){
             throw new UsernameTakenException();
@@ -150,31 +149,33 @@ public class UserManager {
         }
     }
 
-    private HashMap<String, Player> getNameMemberMap() {
+    private HashMap<String, OutfitPlayer> getNameMemberMap() {
         updateMaps();
         return nameMemberMap;
     }
 
-    private HashMap<Long, Player> getLongMemberMap() {
+    private HashMap<Long, OutfitPlayer> getLongMemberMap() {
         updateMaps();
         return longMemberMap;
     }
 
-    private void purgeInactive(){
-        HashMap<Long, Player> memberHashMap = getLongMemberMap();
-        List<Database.VerifiedData> verified = database.getEntries();
-        verified.stream()
-                .filter(data->!memberHashMap.containsKey(data.ps2))
-                .forEach(this::unverifyUser);
+    public void removeLeavingMember(Long discordId){
+        Configuration cfg = RenegadeTracker.INSTANCE.getConfig();
+        JDA jda = RenegadeTracker.INSTANCE.getJda();
+        Guild guild = cfg.getGuild(jda);
+        Arrays.stream(Rank.values())
+                .filter(cfg::shouldAssign)
+                .map(cfg::getRole)
+                .filter(Objects::nonNull)
+                .forEach(role->{
+                    try {
+                        guild.removeRoleFromMember(discordId, role).queue();
+                    } catch (Exception ignored){}
+                });
     }
 
     private void unverifyUser(Database.VerifiedData data){
-        Guild guild = main.getConfig().getGuild(main.getJda());
-        List<Role> roles = Stream.of(0l, 0l)
-                .map(guild::getRoleById)
-                .collect(Collectors.toList());
-        Member m = guild.retrieveMemberById(data.discord).complete();
-        guild.modifyMemberRoles(m, new ArrayList<>(), roles).complete();
+        removeLeavingMember(data.discord);
         database.deleteRecordDiscord(data.discord);
     }
 
@@ -187,8 +188,8 @@ public class UserManager {
         if (r18 == null || r18.getMembers().isEmpty()) {
             System.out.println("Failed to fetch outfit. Using old data.");
         } else {
-            HashMap<Long, Player> longPlayerMap = new HashMap<>();
-            HashMap<String, Player> namePlayerMap = new HashMap<>();
+            HashMap<Long, OutfitPlayer> longPlayerMap = new HashMap<>();
+            HashMap<String, OutfitPlayer> namePlayerMap = new HashMap<>();
             r18.getMembers().forEach(m -> {
                 longPlayerMap.put(m.getCharacter_id(), m);
                 namePlayerMap.put(m.getLowerName(), m);

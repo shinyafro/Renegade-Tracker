@@ -15,21 +15,21 @@ import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.hocon.HoconConfigurationLoader;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
 import ninja.leaping.configurate.objectmapping.ObjectMappingException;
-import renegade.planetside2.data.Player;
+import renegade.planetside2.data.OutfitPlayer;
 import renegade.planetside2.data.Outfit;
 import renegade.planetside2.handlers.DiscordEvents;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
 import renegade.planetside2.tracker.OutfitMember;
-import renegade.planetside2.tracker.Rank;
 import renegade.planetside2.tracker.UserManager;
-import renegade.planetside2.util.Pair;
 import renegade.planetside2.util.Utility;
 
 import javax.security.auth.login.LoginException;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+
+import static renegade.planetside2.util.Utility.*;
 
 public enum RenegadeTracker {
     //https://discord.com/oauth2/authorize?client_id=817749037188775936&permissions=8&scope=bot
@@ -38,19 +38,17 @@ public enum RenegadeTracker {
     public static void main(String[] args) {
         while (true) {
             try {
+                long time = INSTANCE.configuration.getScheduleInterval();
+                if (time == -1) break;
                 System.out.println("Starting scheduled rank check.");
                 INSTANCE.calculateRanks(true);
                 System.out.println("Scheduled rank check completed.");
-                Utility.sleep(HOUR);
+                Utility.sleep(time);
             } catch (Exception e){
                 e.printStackTrace();
             }
         }
     }
-
-    private static final long SECOND = 1000;
-    private static final long MINUTE = SECOND * 60;
-    private static final long HOUR = MINUTE * 60;
 
     private final ConfigurationLoader<CommentedConfigurationNode> loader;
     private final Database database;
@@ -92,29 +90,39 @@ public enum RenegadeTracker {
         bananaIds = configuration.getBananaIds();
     }
 
+    public List<Long> getAcceptableCamos() {
+         return bananaIds;
+    }
+
     public void calculateRanks(boolean updateRanks) {
+        HashSet<Long> outfitMembers = new HashSet<>();
         Map<Long, Long> ps2Discord = database.getPS2DiscordMap();
-        List<Player> members = Outfit.getR18().getMembers();
+        List<OutfitPlayer> members = Outfit.getR18().getMembers();
         Multimap<String, String> renegadeMap = ArrayListMultimap.create();
-        for (Player player : members) {
+        for (OutfitPlayer player : members) {
+            outfitMembers.add(player.getCharacter_id());
             long discord = ps2Discord.getOrDefault(player.getCharacter_id(), -1L);
             OutfitMember member = manager.getMember(discord, player).orElse(null);
             if ((player.checkForRenegade() || member != null && !member.isRenegade()) && player.hasAny(bananaIds)) {
                 if (member != null) member.assignRenegade();
                 else renegadeMap.put(player.getRank(), player.getActualName());
             }
-            if (member != null && updateRanks) member.configureRanks(player);
+            if (member != null && updateRanks) member.configureRanks();
         }
         String title = "The following players have the renegade camo,\nbut are not linked to a discord account";
         TextChannel channel = configuration.getCommandChannel();
         if (channel != null) {
             EmbedBuilder builder = Utility.embed()
                     .addField(title, "", false);
-            renegadeMap.asMap().forEach((rank, names)->builder.addField(rank, String.join("\n", names), false));
+            renegadeMap.asMap().forEach((rank, names) -> builder.addField(rank, String.join("\n", names), false));
             configuration.getCommandChannel()
                     .sendMessage(builder.build())
                     .queue();
         }
+        database.getEntries().stream()
+                .map(Database.VerifiedData::getDiscord)
+                .filter(user-> !outfitMembers.contains(user))
+                .forEach(manager::removeLeavingMember);
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -142,6 +150,14 @@ public enum RenegadeTracker {
 
     public Configuration getConfig(){
         return configuration;
+    }
+
+    public UserManager getManager() {
+         return manager;
+    }
+
+    public Database getDatabase() {
+         return database;
     }
 
     private JDA getJda(Collection<GatewayIntent> intents, UserManager manager) throws InterruptedException, LoginException {

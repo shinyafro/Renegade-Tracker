@@ -9,12 +9,24 @@ import com.google.api.client.http.HttpRequestFactory;
 import com.google.api.client.http.HttpResponse;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import net.dv8tion.jda.api.EmbedBuilder;
-import net.dv8tion.jda.api.entities.MessageEmbed;
+import net.dv8tion.jda.api.JDA;
+import net.dv8tion.jda.api.entities.*;
+import net.dv8tion.jda.api.requests.RestAction;
+import renegade.planetside2.RenegadeTracker;
+import renegade.planetside2.storage.Configuration;
+import renegade.planetside2.tracker.Rank;
 
 import java.awt.*;
 import java.io.IOException;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public class Utility {
+    public static final long SECOND = 1000;
+    public static final long MINUTE = SECOND * 60;
+    public static final long HOUR = MINUTE * 60;
     public static Gson gson = new GsonBuilder()
             .serializeNulls()
             .setPrettyPrinting()
@@ -75,5 +87,60 @@ public class Utility {
         return new EmbedBuilder()
                 .setTitle("R-18 Renegade Tracker")
                 .setColor(Color.YELLOW);
+    }
+
+    public static void setRoleIfAbsent(Member member, Rank role){
+        try {
+            Configuration cfg = RenegadeTracker.INSTANCE.getConfig();
+            Guild guild = member.getGuild();
+            Role discordRole = cfg.getRole(role);
+            if (discordRole == null) return;
+            guild.addRoleToMember(member, discordRole).queue();
+        } catch (Exception ignored){}
+    }
+
+    public static void removeRoleIfPresent(Member member, Rank role) {
+            try {
+                Configuration cfg = RenegadeTracker.INSTANCE.getConfig();
+                Guild guild = member.getGuild();
+                Role discordRole = cfg.getRole(role);
+                if (discordRole == null) return;
+                guild.removeRoleFromMember(member, discordRole).queue();
+            } catch (Exception ignored) {}
+    }
+
+    public static void sendPermissionError(TextChannel source, Member member){
+        sendMessage(source, "<@" + member.getUser().getId() + ">, you do **not** have permission to use this command!", 5);
+    }
+
+    public static void sendCommandError(TextChannel source, Member member, String msg){
+        sendMessage(source, "<@" + member.getUser().getId() + ">, " + msg, 5);
+    }
+
+    public static CompletableFuture<Message> sendMessage(TextChannel src, String message, int delay){
+        return src.sendMessage(message).submit()
+                .whenComplete((msg, ex)-> msg.delete().queueAfter(delay, TimeUnit.SECONDS));
+    }
+
+    public static Optional<Long> parseUserId(List<String> args){
+        JDA jda = RenegadeTracker.INSTANCE.getJda();
+        Guild guild = RenegadeTracker.INSTANCE.getConfig().getGuild(jda);
+        return args.stream()
+                .filter(s->s.matches("<?@?!?\\d+>?"))
+                .map(s->s.replaceAll("<?@?!?(\\d+)>?", "$1"))
+                .filter(s->s.matches("\\d+"))
+                .map(Long::valueOf)
+                .findFirst();
+    }
+
+    public static Optional<CompletableFuture<Member>> parseMember(List<String> args){
+        JDA jda = RenegadeTracker.INSTANCE.getJda();
+        Guild guild = RenegadeTracker.INSTANCE.getConfig().getGuild(jda);
+        return args.stream()
+                .filter(s->s.matches("<?@?!?\\d+>?"))
+                .map(s->s.replaceAll("<?@?!?(\\d+)>?", "$1"))
+                .map(guild::retrieveMemberById)
+                .map(RestAction::submit)
+                .findFirst();
     }
 }
