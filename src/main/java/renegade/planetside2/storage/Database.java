@@ -28,17 +28,19 @@ public enum Database {
 
     private void initTable(){
         try (Connection connection = getConnection();
-            Statement stmt = connection.createStatement()){
-            System.out.println("Creating table in given database...");
+             Statement stmt = connection.createStatement()){
             String sql = "CREATE TABLE IF NOT EXISTS `Verification` (" +
                     " `DiscordId` BIGINT NOT NULL, " +
                     " `PlanetsideId` BIGINT NOT NULL, " +
-                    " `Verified` TIMESTAMP NOT NULL DEFAULT current_timestamp()," +
+                    " `Verified` TIMESTAMP NOT NULL DEFAULT current_timestamp(), " +
+                    " `Member` BIT NOT NULL DEFAULT TRUE, " +
+                    " `Assign` BIT NOT NULL DEFAULT TRUE, " +
+                    " `Router` BIT NOT NULL DEFAULT FALSE, " +
+                    " `Renegade` BIT NOT NULL DEFAULT FALSE, " +
                     " PRIMARY KEY (`DiscordId`))";
             stmt.executeUpdate(sql);
-            System.out.println("Created table in given database...");
         } catch (Exception e){
-             e.printStackTrace();
+            e.printStackTrace();
         }
     }
 

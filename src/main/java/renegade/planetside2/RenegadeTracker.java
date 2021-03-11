@@ -34,6 +34,7 @@ import static renegade.planetside2.util.Utility.MINUTE;
 
 public enum RenegadeTracker {
     //https://discord.com/oauth2/authorize?client_id=817749037188775936&permissions=8&scope=bot
+    //https://discord.com/oauth2/authorize?client_id=817749037188775936&permissions=4294966215&scope=bot
     INSTANCE;
 
     public static void main(String[] args) {
