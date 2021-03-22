@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
 
 @SuppressWarnings("SqlResolve")
@@ -16,6 +18,7 @@ public enum Database {
     private static final String DB_URL = "jdbc:h2:./RenegadeTracker";
     private static final String USER = "";
     private static final String PASS = "";
+    private ThreadPoolExecutor executor = (ThreadPoolExecutor) Executors.newFixedThreadPool(4);
 
     Database(){
         try {
@@ -81,6 +84,19 @@ public enum Database {
         }
     }
 
+    public void updateMembership(long discordId, boolean val) {
+        try (Connection connection = getConnection();
+             PreparedStatement ps = connection.prepareStatement("UPDATE verification SET Member = ? WHERE DiscordId = ?")) {
+            ps.setBoolean(1, val);
+            ps.setLong(2, discordId);
+
+            ps.executeUpdate();
+
+        } catch (SQLException exception) {
+            exception.printStackTrace();
+        }
+    }
+
     public void deleteRecordPlanetside(long planetsideId) {
         try (Connection connection = getConnection();
              PreparedStatement ps = connection.prepareStatement("DELETE FROM `Verification` WHERE PlanetsideId = ?")) {
@@ -104,7 +120,8 @@ public enum Database {
                 long player = rs.getLong("PlanetsideId");
                 long discord = rs.getLong("DiscordId");
                 Timestamp verified = rs.getTimestamp("Verified");
-                VerifiedData data = new VerifiedData(player, discord, verified);
+                boolean member = rs.getBoolean("Member");
+                VerifiedData data = new VerifiedData(player, discord, verified, member);
                 return Optional.of(data);
             }
 
@@ -125,7 +142,8 @@ public enum Database {
                 long player = rs.getLong("PlanetsideId");
                 long discord = rs.getLong("DiscordId");
                 Timestamp verified = rs.getTimestamp("Verified");
-                VerifiedData data = new VerifiedData(player, discord, verified);
+                boolean member = rs.getBoolean("Member");
+                VerifiedData data = new VerifiedData(player, discord, verified, member);
                 return Optional.of(data);
             }
 
@@ -145,7 +163,8 @@ public enum Database {
                     long player = rs.getLong("PlanetsideId");
                     long discord = rs.getLong("DiscordId");
                     Timestamp verified = rs.getTimestamp("Verified");
-                    entries.add(new VerifiedData(player, discord, verified));
+                    boolean member = rs.getBoolean("Member");
+                    entries.add(new VerifiedData(player, discord, verified, member));
                 }
                 return entries;
             }
@@ -157,19 +176,21 @@ public enum Database {
 
     }
 
-    public Map<Long, Long> getPS2DiscordMap(){
+    public Map<Long, VerifiedData> getPS2DiscordMap(){
         return getEntries().stream()
-                .collect(Collectors.toMap(VerifiedData::getPs2, VerifiedData::getDiscord));
+                .collect(Collectors.toMap(VerifiedData::getPs2, v->v));
     }
 
-    public static class VerifiedData{
+    public class VerifiedData{
         public final long ps2;
         public final long discord;
         public final Timestamp verified;
-        public VerifiedData(long ps2, long discord, Timestamp verified){
+        public boolean member;
+        public VerifiedData(long ps2, long discord, Timestamp verified, boolean member){
             this.ps2 = ps2;
             this.discord = discord;
             this.verified = verified;
+            this.member = member;
         }
 
         public long getPs2(){
@@ -178,6 +199,15 @@ public enum Database {
 
         public long getDiscord(){
             return discord;
+        }
+
+        public void setMember(boolean val) {
+            executor.execute(()->updateMembership(discord, val));
+            this.member = val;
+        }
+
+        public boolean isMember(){
+            return member;
         }
     }
 

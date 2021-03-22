@@ -1,10 +1,7 @@
 package renegade.planetside2.tracker;
 
 import net.dv8tion.jda.api.JDA;
-import net.dv8tion.jda.api.entities.Guild;
-import net.dv8tion.jda.api.entities.Member;
-import net.dv8tion.jda.api.entities.TextChannel;
-import net.dv8tion.jda.api.entities.User;
+import net.dv8tion.jda.api.entities.*;
 import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import net.dv8tion.jda.api.requests.RestAction;
 import renegade.planetside2.RenegadeTracker;
@@ -14,6 +11,7 @@ import renegade.planetside2.exception.*;
 import renegade.planetside2.storage.Configuration;
 import renegade.planetside2.storage.Database;
 import renegade.planetside2.util.Pair;
+import renegade.planetside2.util.Utility;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -49,8 +47,12 @@ public class UserManager {
             Guild guild = cfg.getGuild(jda);
             guild.retrieveMember(target)
                     .submit()
-                    .thenApply(m->guild.modifyNickname(m, input))
-                    .thenCompose(RestAction::submit);
+                    .thenAccept(m->{
+                        guild.modifyNickname(m, input).queue();
+                        if (main.getConfig().shouldAssignMember()) guild
+                                .addRoleToMember(m, main.getConfig().getRole(Rank.MEMBER))
+                                .queue();
+                    });
         } catch (AlreadyLinkedException e) {
             source.openPrivateChannel()
                     .flatMap(ch->ch.sendMessage(embed("Error", "We have detected your discord account is already in the database. \n" +
@@ -75,8 +77,9 @@ public class UserManager {
         }
     }
 
-    public Optional<OutfitMember> getMember(long discord, OutfitPlayer player) {
-        if (discord < 0) return Optional.empty();
+    public Optional<OutfitMember> getMember(Database.VerifiedData data, OutfitPlayer player) {
+        if (data == null) return Optional.empty();
+        long discord = data.discord;
         try {
             JDA jda = RenegadeTracker.INSTANCE.getJda();
             Guild guild = RenegadeTracker.INSTANCE.getConfig().getGuild(jda);
@@ -91,6 +94,7 @@ public class UserManager {
 
     public OutfitMember getMember(Member member) throws UserNotLinkedException {
         OutfitPlayer p = database.getWithDiscordId(member.getIdLong())
+                .map(Database.VerifiedData::getPs2)
                 .map(getLongMemberMap()::get)
                 .orElseThrow(UserNotLinkedException::new);
         return new OutfitMember(member, p);
@@ -99,6 +103,7 @@ public class UserManager {
     public RestAction<OutfitMember> getMember(long discordId) throws UserNotLinkedException {
         Guild guild = main.getConfig().getGuild(main.getJda());
         OutfitPlayer p = database.getWithDiscordId(discordId)
+                .map(Database.VerifiedData::getPs2)
                 .map(getLongMemberMap()::get)
                 .orElseThrow(UserNotLinkedException::new);
         return guild.retrieveMemberById(discordId)
@@ -136,11 +141,20 @@ public class UserManager {
     }
 
     private void linkAccount(User user, String name) throws LinkException {
-        if (database.getWithDiscordId(user.getIdLong()).isPresent()){
-            throw new AlreadyLinkedException();
-        }
+        Optional<Database.VerifiedData> existingLink = database.getWithDiscordId(user.getIdLong());
         HashMap<String, OutfitPlayer> outfitMembers = getNameMemberMap();
         OutfitPlayer member = outfitMembers.get(name);
+        if (existingLink.isPresent()){
+            Database.VerifiedData link = existingLink.get();
+            if (member != null &&
+                    member.getLowerName().equals(name) &&
+                    link.discord == user.getIdLong() &&
+                    !link.isMember()){
+                link.setMember(true);
+                return;
+            }
+            throw new AlreadyLinkedException();
+        }
         if (member == null) throw new UsernameNotInOutfitException();
         else if (database.getWithPlanetsideId(member.getCharacter_id()).isPresent()){
             throw new UsernameTakenException();
@@ -162,23 +176,36 @@ public class UserManager {
         return longMemberMap;
     }
 
-    public void removeLeavingMember(Long discordId){
+    public void removeLeavingMember(Database.VerifiedData data) {
         Configuration cfg = RenegadeTracker.INSTANCE.getConfig();
         JDA jda = RenegadeTracker.INSTANCE.getJda();
         Guild guild = cfg.getGuild(jda);
-        Arrays.stream(Rank.values())
-                .filter(cfg::shouldAssign)
-                .map(cfg::getRole)
-                .filter(Objects::nonNull)
-                .forEach(role->{
-                    try {
-                        guild.removeRoleFromMember(discordId, role).queue();
-                    } catch (Exception ignored){}
-                });
+        User user = jda.retrieveUserById(data.discord).complete();
+        try {
+            String m = String.format("%s has left the outfit.", user.getAsMention());
+            MessageEmbed embed = Utility.embed("Leaving Member", m);
+            cfg.getCommandChannel()
+                    .sendMessage(embed)
+                    .queue();
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        guild.retrieveMember(user)
+                .map(mem->{
+                    List<Role> remove = Arrays.stream(Rank.values())
+                            .filter(cfg::shouldAssign)
+                            .map(cfg::getRole)
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
+                    remove.retainAll(mem.getRoles());
+                    guild.modifyMemberRoles(mem, new ArrayList<>(), remove).queue();
+                    data.setMember(false);
+                    return mem;
+                }).submit();
     }
 
     private void unverifyUser(Database.VerifiedData data){
-        removeLeavingMember(data.discord);
+        removeLeavingMember(data);
         database.deleteRecordDiscord(data.discord);
     }
 

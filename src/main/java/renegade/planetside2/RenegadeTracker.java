@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.hooks.AnnotatedEventManager;
 import net.dv8tion.jda.api.requests.GatewayIntent;
@@ -42,13 +43,19 @@ public enum RenegadeTracker {
             Utility.setStatus(Activity.ActivityType.STREAMING, "Planetside 2", null);
         } catch (Exception ignored){}
         while (true) {
+            long started = System.currentTimeMillis();
+            long time = INSTANCE.configuration.getScheduleInterval();
             try {
-                long time = INSTANCE.configuration.getScheduleInterval();
                 if (time == -1) break;
                 System.out.println("Starting scheduled rank check.");
-                INSTANCE.calculateRanks(true);
-                System.out.println("Scheduled rank check completed.");
-                Utility.sleep(time);
+                boolean success = INSTANCE.calculateRanks(true);
+                long duration = System.currentTimeMillis() - started;
+                if (success) {
+                    System.out.println("Scheduled rank check completed. (" + duration + "ms)");
+                    Utility.sleep(time - duration);
+                } else {
+                    System.out.println("Scheduled rank check failed. Trying again.");
+                }
             } catch (Exception e){
                 e.printStackTrace();
             }
@@ -99,36 +106,64 @@ public enum RenegadeTracker {
          return bananaIds;
     }
 
-    public void calculateRanks(boolean updateRanks) {
+    public boolean calculateRanks(boolean updateRanks) {
         HashSet<Long> outfitMembers = new HashSet<>();
-        Map<Long, Long> ps2Discord = database.getPS2DiscordMap();
-        List<OutfitPlayer> members = Outfit.getR18().getMembers();
+        Map<Long, Database.VerifiedData> ps2Discord = database.getPS2DiscordMap();
+        List<String> notInDiscord = new ArrayList<>();
+        Outfit outfit = Outfit.getR18();
+        if (outfit == null) return false;
         Multimap<String, String> renegadeMap = ArrayListMultimap.create();
-        for (OutfitPlayer player : members) {
+        for (OutfitPlayer player : outfit.getMembers()) {
             outfitMembers.add(player.getCharacter_id());
-            long discord = ps2Discord.getOrDefault(player.getCharacter_id(), -1L);
+            Database.VerifiedData discord = ps2Discord.get(player.getCharacter_id());
             OutfitMember member = manager.getMember(discord, player).orElse(null);
             if ((player.checkForRenegade() || member != null && !member.isRenegade()) && player.hasAny(bananaIds)) {
                 if (member != null) member.assignRenegade();
-                else renegadeMap.put(player.getRank(), player.getActualName());
+                renegadeMap.put(player.getRank(), player.getActualName());
             }
             if (member != null && updateRanks) member.configureRanks();
+            if (member == null && configuration.shouldBeInDiscord(player.getRank())) {
+                notInDiscord.add(player.getActualName());
+            }
         }
-        String title = "The following players have the renegade camo,\nbut are not linked to a discord account";
+
         TextChannel channel = configuration.getCommandChannel();
-        if (channel != null) {
-            EmbedBuilder builder = Utility.embed()
-                    .addField(title, "", false);
+        EmbedBuilder builder = Utility.embed();
+        if (channel != null && !renegadeMap.isEmpty()) {
+            String title = "The following players have the renegade camo,\nbut are not renegades in-game.";
+            builder.addField(title, "", false);
             renegadeMap.asMap().forEach((rank, names) -> builder.addField(rank, String.join("\n", names), false));
+        }
+        /*probably not the best idea as no one in the db for now lmao
+        if (channel != null && !notInDiscord.isEmpty()) {
+            String title = "The following players are members,\nbut are not in discord.";
+            builder.addField(title, String.join("\n", notInDiscord), false);
+        }*/
+
+        //if (renegadeMap.isEmpty() && notInDiscord.isEmpty() && channel != null) {
+        if (renegadeMap.isEmpty() && channel != null) {
+            MessageEmbed embed = Utility.embed()
+                    .addField("Renegade Check", "All members with camo appear to\n" +
+                            "be correctly assigned in-game.", false)
+                    .build();
+            configuration.getCommandChannel()
+                    .sendMessage(embed)
+                    .queue();
+        } else if (channel != null){
             configuration.getCommandChannel()
                     .sendMessage(builder.build())
                     .queue();
         }
-        if (!configuration.shouldStripLeaving() || members.isEmpty() || members.size() < 100) return;
-        database.getEntries().stream()
-                .map(Database.VerifiedData::getPs2)
-                .filter(user-> !outfitMembers.contains(user))
+
+        if (!configuration.shouldStripLeaving() || outfit.getMembers().isEmpty() || outfit.getMembers().size() < 100) return true;
+        List<Database.VerifiedData> entries = database.getEntries();
+        entries.stream()
+                .peek(user->{
+                    if (outfitMembers.contains(user.getPs2()) && !user.isMember()) user.setMember(true);
+                }).filter(user-> !outfitMembers.contains(user.getPs2()))
+                .filter(Database.VerifiedData::isMember)
                 .forEach(manager::removeLeavingMember);
+        return true;
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -145,7 +180,7 @@ public enum RenegadeTracker {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    public void saveConfig(){
+    public void saveConfig() {
         try {
             if (node == null) return;
             loader.save(node.setValue(TypeToken.of(Configuration.class), configuration));

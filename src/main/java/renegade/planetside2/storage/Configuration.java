@@ -106,9 +106,16 @@ public class Configuration {
         return planetside.checkForCamoHashSet;
     }
 
+    public boolean shouldBeInDiscord(String rank) {
+        if (planetside.notInDiscordHashSet == null){
+            planetside.notInDiscordHashSet = new HashSet<>(planetside.notInDiscord);
+        }
+        return planetside.notInDiscordHashSet.contains(rank);
+    }
+
     public long getScheduleInterval(){
         if (planetside.interval < 0) return -1;
-        long val = (long) planetside.interval * HOUR;
+        long val = (long) (planetside.interval * HOUR);
         return Math.max(val, MINUTE * 15);
     }
 
@@ -116,11 +123,16 @@ public class Configuration {
         return discord.sendJoinMessage;
     }
 
-    public boolean shouldAssignRoles(){
-         return discord.assignRoles;
+    public boolean shouldAssignRoles() {
+        return discord.assignRoles;
     }
+
     public boolean shouldStripLeaving(){
         return discord.stripLeaving;
+    }
+
+    public boolean shouldAssignMember() {
+        return discord.assignMember;
     }
 
     public String getCommandPrefix() {
@@ -143,6 +155,12 @@ public class Configuration {
                 "Join Discord"
         );
 
+        @Setting(value = "Not-In-Discord", comment = "Ranks for members not in discord.")
+        private List<String> notInDiscord = Arrays.asList(
+                "Join Discord Shatter",
+                "Join Discord"
+        );
+
         @Setting(value = "Scheduler-Interval", comment = "How long (In hours) the bot will check verified users ranks,\n" +
                 "and for renegade camo, etc. Default: 2.0 - Minimum of 15 minutes.\n" +
                 "any values below 0 will result in the tasks not being ran.\n" +
@@ -150,6 +168,8 @@ public class Configuration {
         private double interval = 2.0;
 
         private Set<String> checkForCamoHashSet;
+
+        private Set<String> notInDiscordHashSet;
     }
 
     @ConfigSerializable
@@ -231,6 +251,11 @@ public class Configuration {
 
         @Setting(value = "Manage-Outfit-Wars", comment = "Should the bot manage the outfit-wars role? (Assign/Remove based on in-game data)")
         private boolean assignWars = true;
+
+        @Setting(value = "Assign-Member", comment =
+                "Assign member rank automatically when an account has been linked.\n" +
+                "Note: This will not remove the waiting verification role.")
+        private boolean assignMember = true;
 
         @Setting(value = "Assign-Roles", comment = "Should the bot try to assign roles?")
         private boolean assignRoles = true;

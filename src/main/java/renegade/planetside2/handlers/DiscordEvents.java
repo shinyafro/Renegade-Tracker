@@ -1,6 +1,5 @@
 package renegade.planetside2.handlers;
 
-import net.dv8tion.jda.api.EmbedBuilder;
 import net.dv8tion.jda.api.entities.MessageEmbed;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.guild.member.GuildMemberJoinEvent;
@@ -11,10 +10,9 @@ import net.dv8tion.jda.api.hooks.SubscribeEvent;
 import renegade.planetside2.RenegadeTracker;
 import renegade.planetside2.command.DiscordCommandManager;
 import renegade.planetside2.storage.Configuration;
+import renegade.planetside2.tracker.Rank;
 import renegade.planetside2.tracker.UserManager;
 import renegade.planetside2.util.Utility;
-
-import static renegade.planetside2.util.Utility.embed;
 
 public class DiscordEvents {
     final UserManager manager;
@@ -49,7 +47,9 @@ public class DiscordEvents {
     public void onPrivateMessage(PrivateMessageReceivedEvent event){
         if (event.getAuthor().isBot()) return;
         String username = event.getMessage()
-                .getContentRaw();
+                .getContentRaw()
+                .trim();
+        username = username.contains(" ")? username.split(" ")[0]: username;
         User user = event.getAuthor();
         manager.linkAccount(user, user, username);
     }
@@ -60,10 +60,27 @@ public class DiscordEvents {
         long channel = event.getChannel().getIdLong();
         Configuration conf = RenegadeTracker.INSTANCE.getConfig();
         if (channel == conf.getLinkingChannelId()){
-            String username = event.getMessage()
-                    .getContentRaw();
+            String usernameRaw = event.getMessage()
+                    .getContentRaw()
+                    .trim();
             User user = event.getAuthor();
-            manager.linkAccount(user, user, username);
+            conf.getGuild(RenegadeTracker.INSTANCE.getJda())
+                    .retrieveMember(user)
+                    .submit()
+                    .thenAccept(member->{
+                        boolean officer = member.getRoles().contains(conf.getRole(Rank.OFFICER));
+                        String[] parts = usernameRaw.contains(" ")? usernameRaw.split(" "): null;
+                        if (officer && parts != null && parts[0].matches("<@!\\d+>")) {
+                            String tag = parts[0].replaceAll("<@!(\\d+)>", "$1");
+                            long id = Long.parseLong(tag);
+                            String username = parts.length > 1? parts[1]: "N/A";
+                            RenegadeTracker.INSTANCE.getJda().retrieveUserById(id).submit()
+                                    .thenAccept(target->manager.linkAccount(user, target, username));
+                        } else {
+                            String username = parts != null? parts[0]: usernameRaw;
+                            manager.linkAccount(user, user, username);
+                        }
+                    });
         } else if (channel == conf.getCommandChannelId()) {
             final String pre = conf.getCommandPrefix();
             final String message = event.getMessage().getContentRaw();
