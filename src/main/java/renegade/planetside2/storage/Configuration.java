@@ -76,6 +76,11 @@ public class Configuration {
         }
     }
 
+    public Role getGuestRole(){
+        JDA jda = RenegadeTracker.INSTANCE.getJda();
+        return jda.getRoleById(discordRoles.guest);
+    }
+
     public Role getRole(Rank rank) {
         JDA jda = RenegadeTracker.INSTANCE.getJda();
         switch (rank) {
@@ -95,6 +100,7 @@ public class Configuration {
         switch (rank) {
             case OFFICER: return discord.assignAdmin;
             case OUTFIT_WARS: return discord.assignWars;
+            case PLEB: return discord.assignWaiting;
             default: return true;
         }
     }
@@ -224,6 +230,9 @@ public class Configuration {
 
         @Setting("Join-Discord-Role")
         private long joinDiscord = 702303877172559923L;
+
+        @Setting("Guest-Role")
+        private long guest = 695992100155818104L;
     }
 
     @ConfigSerializable
@@ -256,6 +265,10 @@ public class Configuration {
                 "Assign member rank automatically when an account has been linked.\n" +
                 "Note: This will not remove the waiting verification role.")
         private boolean assignMember = true;
+
+        @Setting(value = "Assign-Waiting-Verification", comment =
+                "Assign/Remove role for awaiting verification.")
+        private boolean assignWaiting = false;
 
         @Setting(value = "Assign-Roles", comment = "Should the bot try to assign roles?")
         private boolean assignRoles = true;

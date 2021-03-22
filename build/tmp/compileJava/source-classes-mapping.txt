@@ -27,9 +27,8 @@ renegade/planetside2/data/Name.java
 renegade/planetside2/data/Outfit.java
  renegade.planetside2.data.Outfit
  renegade.planetside2.data.Outfit$OutfitListing
-renegade/planetside2/storage/Database.java
- renegade.planetside2.storage.Database
- renegade.planetside2.storage.Database$VerifiedData
+renegade/planetside2/exception/UserNotLinkedException.java
+ renegade.planetside2.exception.UserNotLinkedException
 renegade/planetside2/command/DiscordCommandExecutor.java
  renegade.planetside2.command.DiscordCommandExecutor
 renegade/planetside2/command/DiscordCommandTree.java
@@ -38,8 +37,9 @@ renegade/planetside2/exception/DiscordPermissionException.java
  renegade.planetside2.exception.DiscordPermissionException
 renegade/planetside2/tracker/Rank.java
  renegade.planetside2.tracker.Rank
-renegade/planetside2/exception/UserNotLinkedException.java
- renegade.planetside2.exception.UserNotLinkedException
+renegade/planetside2/storage/Database.java
+ renegade.planetside2.storage.Database
+ renegade.planetside2.storage.Database$VerifiedData
 renegade/planetside2/command/ps2/Verified.java
  renegade.planetside2.command.ps2.Verified
 renegade/planetside2/data/OutfitPlayer.java
@@ -48,8 +48,8 @@ renegade/planetside2/data/OutfitPlayer.java
  renegade.planetside2.data.OutfitPlayer$UnlockedItem
 renegade/planetside2/tracker/UserManager.java
  renegade.planetside2.tracker.UserManager
-renegade/planetside2/command/DiscordCommandManager.java
- renegade.planetside2.command.DiscordCommandManager
+renegade/planetside2/RenegadeTracker.java
+ renegade.planetside2.RenegadeTracker
 renegade/planetside2/command/ps2/CheckCamo.java
  renegade.planetside2.command.ps2.CheckCamo
 renegade/planetside2/command/ps2/CheckUser.java
@@ -61,10 +61,8 @@ renegade/planetside2/storage/Configuration.java
  renegade.planetside2.storage.Configuration$DiscordRoles
  renegade.planetside2.storage.Configuration$InGameRanks
  renegade.planetside2.storage.Configuration$Planetside
-renegade/planetside2/command/DiscordCommand.java
- renegade.planetside2.command.DiscordCommand
- renegade.planetside2.command.DiscordCommand$1
- renegade.planetside2.command.DiscordCommand$Builder
+renegade/planetside2/handlers/DiscordEvents.java
+ renegade.planetside2.handlers.DiscordEvents
 renegade/planetside2/util/Utility.java
  renegade.planetside2.util.Utility
 renegade/planetside2/command/ps2/Info.java
@@ -74,7 +72,9 @@ renegade/planetside2/command/ps2/Unlink.java
 renegade/planetside2/tracker/OutfitMember.java
  renegade.planetside2.tracker.OutfitMember
  renegade.planetside2.tracker.OutfitMember$1
-renegade/planetside2/RenegadeTracker.java
- renegade.planetside2.RenegadeTracker
-renegade/planetside2/handlers/DiscordEvents.java
- renegade.planetside2.handlers.DiscordEvents
+renegade/planetside2/command/DiscordCommand.java
+ renegade.planetside2.command.DiscordCommand
+ renegade.planetside2.command.DiscordCommand$1
+ renegade.planetside2.command.DiscordCommand$Builder
+renegade/planetside2/command/DiscordCommandManager.java
+ renegade.planetside2.command.DiscordCommandManager

@@ -192,13 +192,7 @@ public class UserManager {
         }
         guild.retrieveMember(user)
                 .map(mem->{
-                    List<Role> remove = Arrays.stream(Rank.values())
-                            .filter(cfg::shouldAssign)
-                            .map(cfg::getRole)
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
-                    remove.retainAll(mem.getRoles());
-                    guild.modifyMemberRoles(mem, new ArrayList<>(), remove).queue();
+                    guild.modifyMemberRoles(mem, cfg.getGuestRole()).queue();
                     data.setMember(false);
                     return mem;
                 }).submit();
